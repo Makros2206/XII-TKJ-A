@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Register System</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            text-align: center;
+            color: #007BFF;
+        }
+        button {
+            padding: 12px 20px;
+            margin: 10px 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .hidden { display: none; }
+        #receipt { margin-top: 20px; padding: 10px; background: #e9ecef; border-radius: 5px; }
+        #total-display { font-weight: bold; margin-top: 10px; text-align: center; }
+        input {
+            padding: 12px;
+            margin: 5px 0;
+            width: calc(100% - 24px);
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        #search-item {
+            width: calc(100% - 24px);
+            margin-bottom: 15px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Toko Elektronik</h1>
+        <h2>Menu</h2>
+        <div class="button-container">
+            <button onclick="showSection('add-item')">Tambahkan Barang</button>
+            <button onclick="showSection('list-items')">Daftar Barang</button>
+            <button onclick="showSection('buy-items')">Beli Barang</button>
+            <button onclick="showSection('sales-report')">Laporan Penjualan</button>
+            <button onclick="showSection('purchase-history')">Riwayat Pembelian</button>
+            <button onclick="showSection('info')">Info Pembuat</button>
+        </div>
+
+        <div id="add-item" class="hidden">
+            <h3>Tambah Barang</h3>
+            <input type="text" id="item-name" placeholder="Nama Barang" required>
+            <input type="text" id="item-code" placeholder="Kode Barang" required>
+            <input type="number" id="item-price" placeholder="Harga Barang" required>
+            <input type="number" id="item-stock" placeholder="Stok Barang" required>
+            <button onclick="addItem()">Tambah</button>
+        </div>
+
+        <div id="list-items" class="hidden">
+            <h3>Daftar Barang</h3>
+            <input type="text" id="search-item" placeholder="Cari Barang" oninput="searchItems()">
+            <table id="items-table">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Kode</th>
+                        <th>Nama Barang</th>
+                        <th>Harga Barang</th>
+                        <th>Stok Barang</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="buy-items" class="hidden">
+            <h3>Beli Barang</h3>
+            <input type="text" id="buy-code" placeholder="Kode Barang" required>
+            <input type="number" id="buy-quantity" placeholder="Jumlah" required>
+            <input type="number" id="discount" placeholder="Diskon (%)" value="0">
+            <button onclick="buyItem()">Beli</button>
+            <button onclick="clearReceipt()">Bersihkan Struk</button>
+            <div id="receipt"></div>
+            <div id="total-display">Total Belanja: Rp 0.00</div>
+            <div id="payment-method" class="hidden">
+                <input type="number" id="customer-payment" placeholder="Uang Diberikan" required>
+                <button onclick="processPayment()">Proses Pembayaran</button>
+                <button onclick="printReceipt()">Cetak Struk</button>
+            </div>
+        </div>
+
+        <div id="sales-report" class="hidden">
+            <h3>Laporan Penjualan</h3>
+            <div id="sales-summary">Total Penjualan: Rp 0.00</div>
+        </div>
+
+        <div id="purchase-history" class="hidden">
+            <h3>Riwayat Pembelian</h3>
+            <table id="purchase-table">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Barang</th>
+                        <th>Jumlah</th>
+                        <th>Harga</th>
+                        <th>Total</th>
+                        <th>Diskon</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="info" class="hidden">
+            <h3>Info Pembuat</h3>
+            <p>Nama: MACHRUS</p>
+            <p>Kelas: XII TKJ A</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 Toko Elektronik. All rights reserved.</p>
+    </footer>
+
+    <script>
+        let items = [];
+        let total = 0;
+        let totalSales = 0;
+        let purchaseHistory = [];
+
+        // Menyimpan daftar barang ke Local Storage
+        function saveItemsToLocalStorage() {
+            localStorage.setItem('items', JSON.stringify(items));
+        }
+
+        // Memuat daftar barang dari Local Storage
+        function loadItemsFromLocalStorage() {
+            const savedItems = localStorage.getItem('items');
+            if (savedItems) {
+                items = JSON.parse(savedItems);
+            }
+        }
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.container > div').forEach(div => {
+                div.classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+            if (sectionId === 'list-items') displayItems();
+            if (sectionId === 'sales-report') displaySalesReport();
+            if (sectionId === 'purchase-history') displayPurchaseHistory();
+            if (sectionId === 'buy-items') checkStock();
+        }
+
+        function addItem() {
+            const name = document.getElementById('item-name').value;
+            const code = document.getElementById('item-code').value;
+            const price = parseFloat(document.getElementById('item-price').value);
+            const stock = parseInt(document.getElementById('item-stock').value);
+
+            if (name && code && !isNaN(price) && !isNaN(stock)) {
+                if (items.some(item => item.code === code)) {
+                    alert('Kode barang sudah ada!');
+                    return;
+                }
+                items.push({ name, code, price, stock });
+                alert('Barang ditambahkan!');
+                saveItemsToLocalStorage(); // Simpan setelah barang ditambahkan
+
+                // Reset input fields
+                document.getElementById('item-name').value = '';
+                document.getElementById('item-code').value = '';
+                document.getElementById('item-price').value = '';
+                document.getElementById('item-stock').value = '';
+
+                displayItems();
+            } else {
+                alert('Silakan isi semua field dengan benar!');
+            }
+        }
+
+        function displayItems() {
+            const tableBody = document.querySelector('#items-table tbody');
+            tableBody.innerHTML = '';
+            items.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${item.code}</td>
+                    <td>${item.name}</td>
+                    <td>Rp ${item.price.toFixed(2)}</td>
+                    <td>${item.stock}</td>
+                    <td>
+                        <button onclick="editItem('${item.code}')">Edit</button>
+                        <button onclick="deleteItem('${item.code}')">Hapus</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function editItem(code) {
+            const item = items.find(item => item.code === code);
+            if (item) {
+                document.getElementById('item-name').value = item.name;
+                document.getElementById('item-code').value = item.code;
+                document.getElementById('item-price').value = item.price;
+                document.getElementById('item-stock').value = item.stock;
+                showSection('add-item'); // Tampilkan section tambah barang
+            }
+        }
+
+        function deleteItem(code) {
+            if (confirm('Apakah Anda yakin ingin menghapus barang ini?')) {
+                items = items.filter(item => item.code !== code);
+                displayItems();
+                saveItemsToLocalStorage(); // Simpan setelah barang dihapus
+                alert('Barang dihapus!');
+            }
+        }
+
+        function searchItems() {
+            const searchTerm = document.getElementById('search-item').value.toLowerCase();
+            const tableBody = document.querySelector('#items-table tbody');
+            tableBody.innerHTML = '';
+
+            const filteredItems = items.filter(item => 
+                item.name.toLowerCase().includes(searchTerm) || 
+                item.code.toLowerCase().includes(searchTerm)
+            );
+
+            filteredItems.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${item.code}</td>
+                    <td>${item.name}</td>
+                    <td>Rp ${item.price.toFixed(2)}</td>
+                    <td>${item.stock}</td>
+                    <td>
+                        <button onclick="editItem('${item.code}')">Edit</button>
+                        <button onclick="deleteItem('${item.code}')">Hapus</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function buyItem() {
+            const code = document.getElementById('buy-code').value;
+            const quantity = parseInt(document.getElementById('buy-quantity').value);
+            const discount = parseFloat(document.getElementById('discount').value);
+
+            const item = items.find(item => item.code === code);
+            if (item) {
+                if (item.stock >= quantity) {
+                    const totalPrice = item.price * quantity;
+                    const totalDiscount = totalPrice * (discount / 100);
+                    const finalPrice = totalPrice - totalDiscount;
+                    item.stock -= quantity; // Kurangi stok
+
+                    // Tambah ke riwayat pembelian
+                    purchaseHistory.push({
+                        name: item.name,
+                        quantity: quantity,
+                        price: item.price,
+                        total: finalPrice,
+                        discount: discount
+                    });
+
+                    total += finalPrice; // Tambahkan ke total belanja
+                    document.getElementById('receipt').innerHTML += `
+                        <p>${item.name} - Jumlah: ${quantity} - Total: Rp ${finalPrice.toFixed(2)} (Diskon: ${discount}%)</p>
+                    `;
+                    document.getElementById('total-display').innerText = `Total Belanja: Rp ${total.toFixed(2)}`;
+                    document.getElementById('payment-method').classList.remove('hidden');
+                    document.getElementById('buy-code').value = '';
+                    document.getElementById('buy-quantity').value = '';
+                    document.getElementById('discount').value = '0';
+                } else {
+                    alert('Stok tidak mencukupi!');
+                }
+            } else {
+                alert('Barang tidak ditemukan!');
+            }
+        }
+
+        function processPayment() {
+            const payment = parseFloat(document.getElementById('customer-payment').value);
+            if (isNaN(payment) || payment <= 0) {
+                alert('Silakan masukkan jumlah uang yang valid!');
+                return;
+            }
+
+            if (payment < total) {
+                alert('Uang yang diberikan tidak cukup!');
+                return;
+            }
+
+            const change = payment - total;
+            alert(`Pembayaran berhasil! Kembalian: Rp ${change.toFixed(2)}`);
+            clearReceipt();
+            totalSales += total; // Tambahkan ke total penjualan
+            total = 0; // Reset total belanja
+            document.getElementById('total-display').innerText = 'Total Belanja: Rp 0.00';
+            displaySalesReport();
+        }
+
+        function clearReceipt() {
+            total = 0;
+            document.getElementById('receipt').innerHTML = '';
+            document.getElementById('total-display').innerText = 'Total Belanja: Rp 0.00';
+            document.getElementById('customer-payment').value = '';
+            document.getElementById('payment-method').classList.add('hidden');
+        }
+
+        function displaySalesReport() {
+            document.getElementById('sales-summary').innerText = `Total Penjualan: Rp ${totalSales.toFixed(2)}`;
+        }
+
+        function displayPurchaseHistory() {
+            const tableBody = document.querySelector('#purchase-table tbody');
+            tableBody.innerHTML = '';
+            purchaseHistory.forEach((purchase, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${purchase.name}</td>
+                    <td>${purchase.quantity}</td>
+                    <td>Rp ${purchase.price.toFixed(2)}</td>
+                    <td>Rp ${purchase.total.toFixed(2)}</td>
+                    <td>${purchase.discount}%</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function checkStock() {
+            const tableBody = document.querySelector('#items-table tbody');
+            tableBody.innerHTML = '';
+            items.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${item.code}</td>
+                    <td>${item.name}</td>
+                    <td>Rp ${item.price.toFixed(2)}</td>
+                    <td>${item.stock}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function printReceipt() {
+            const receiptContent = document.getElementById('receipt').innerHTML;
+            const totalDisplay = document.getElementById('total-display').innerHTML;
+
+            const printWindow = window.open('', '', 'height=600,width=400');
+            printWindow.document.write('<html><head><title>Struk Belanja</title>');
+            printWindow.document.write('<style>body { font-family: monospace; } h2, h3 { text-align: center; } p { margin: 0; }</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write('<h2>Toko Elektronik</h2>');
+            printWindow.document.write('<h3>Struk Pembelian</h3>');
+            printWindow.document.write('<hr/>');
+            printWindow.document.write(receiptContent);
+            printWindow.document.write('<hr/>');
+            printWindow.document.write(`<p>${totalDisplay}</p>`);
+            printWindow.document.write('<p>Terima Kasih!</p>');
+            printWindow.document.write('<p>Datang Kembali!</p>');
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        // Panggil fungsi ini saat halaman dimuat
+        window.onload = function() {
+            loadItemsFromLocalStorage();
+            displayItems();
+        };
+
+        // Tampilkan section pertama kali
+        showSection('add-item');
+    </script>
+</body>
+</html>
